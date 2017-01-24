@@ -3,7 +3,7 @@ module Test.Tasty.Auto (findTests, showTestDriver) where
 import Data.Function (on)
 import Data.List (find, isPrefixOf, isSuffixOf, nub, intersperse, groupBy, sortOn)
 import Data.Maybe (fromJust)
-import System.Directory (listDirectory, doesDirectoryExist)
+import System.Directory (getDirectoryContents, doesDirectoryExist)
 import Data.Traversable (for)
 import System.FilePath ((</>), takeDirectory, pathSeparator, dropExtension)
 import Data.Monoid (Endo(..))
@@ -102,7 +102,7 @@ showTestDriver src ts = let gs = getGenerators ts in
 
 filesBySuffix :: FilePath -> [String] -> IO [FilePath]
 filesBySuffix dir suffixes = do
-  entries <- listDirectory dir
+  entries <- filter (\s -> head s /= '.') <$> getDirectoryContents dir
   found <- for entries $ \entry -> do
     let dir' = dir </> entry
     exists <- doesDirectoryExist dir'
