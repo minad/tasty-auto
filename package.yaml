@@ -1,0 +1,48 @@
+name: tasty-auto
+version: 0.0.0.0
+description: Simple auto discovery for Tasty
+synopsis: Simple auto discovery for Tasty
+category: Testing
+stability: experimental
+author: Daniel Mendler <mail@daniel-mendler.de>
+maintainer: Daniel Mendler <mail@daniel-mendler.de>
+copyright: 2017 Daniel Mendler
+license: MIT
+github: minad/tasty-auto
+
+extra-source-files:
+- "*.md"
+
+ghc-options:
+- -Wall
+
+tested-with:
+  GHC == 7.10.3,
+  GHC == 8.0.1
+
+dependencies:
+- base       >= 4.8 && < 5
+- directory  >= 1.1 && < 1.3
+- filepath   >= 1.3 && < 1.5
+
+library:
+  source-dirs: src
+
+executables:
+  tasty-auto:
+    main: tasty-auto.hs
+    dependencies:
+      tasty-auto
+
+tests:
+  test:
+    main: test.hs
+    source-dirs: test
+    dependencies:
+    - base
+    - tasty
+    - tasty-auto
+    - tasty-hspec
+    - tasty-hunit
+    - tasty-quickcheck
+    - tasty-smallcheck
