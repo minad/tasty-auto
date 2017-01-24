@@ -5,16 +5,16 @@
 
 This package provides auto discovery for the tasty test framework.
 
-1. Install tasty-auto (using cabal or stack)
+* Install tasty-auto (using cabal or stack)
 
-2. Create a file test/test.hs
+* Create a file test/test.hs
 
 ``` haskell
 -- test/test.hs
 {-# OPTIONS_GHC -F -pgmF tasty-auto #-}
 ```
 
-3. Put your tests in files with the suffix `*Test.hs` or `*Spec.hs`. Functions
+* Put your tests in files with the suffix `*Test.hs` or `*Spec.hs`. Functions
 with the following prefixes are automatically discovered:
 
 * `prop_` for QuickCheck properties
@@ -23,13 +23,17 @@ with the following prefixes are automatically discovered:
 * `spec_` for Hspec specifications
 * `test_` for Tasty TestTrees (overloaded for `TestTree`, `[TestTree]`, `IO TestTree` and `IO [TestTree]`)
 
+## Examples
+
 ``` haskell
 -- test/PropTest.hs
 module PropTest where
 
 prop_Addition_is_commutative :: Int -> Int -> Bool
 prop_Addition_is_commutative a b = a + b == b + a
+```
 
+``` haskell
 -- test/CaseTest.hs
 module CaseTest where
 
@@ -37,7 +41,9 @@ import Test.Tasty.HUnit
 
 case_List_comparison_with_different_length :: IO ()
 case_List_comparison_with_different_length = [1, 2, 3] `compare` [1,2] @?= GT
+```
 
+``` haskell
 -- test/TestSpec.hs
 module TestSpec where
 
@@ -48,7 +54,9 @@ spec_Prelude = do
   describe "Prelude.head" $ do
     it "returns the first element of a list" $ do
       head [23 ..] `shouldBe` (23 :: Int)
+```
 
+``` haskell
 -- test/TreeTest.hs
 {-# LANGUAGE ScopedTypeVariables #-}
 module TreeTest where
