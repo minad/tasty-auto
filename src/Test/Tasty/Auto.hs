@@ -27,41 +27,40 @@ nl = ('\n':)
 tr :: Char -> Char -> String -> String
 tr a b = map $ \c -> if c == a then b else c
 
-name, fn, var :: Test -> ShowS
+name, fn :: Test -> ShowS
 name = shows . tr '_' ' ' . tail . dropWhile (/= '_') . testFunction
 fn t = str (testModule t) . ('.':) . str (testFunction t)
-var t = str "setup_" . str (tr '.' '_' $ testModule t) . ('_':) . str (testFunction t)
 
 generators :: [Generator]
 generators =
   [ Generator { genPrefix = "prop_"
-              , genImport = str "import qualified Test.Tasty.QuickCheck\n"
+              , genImport = str "import qualified Test.Tasty.QuickCheck as QC\n"
               , genInstance = id
-              , genSetup = \t -> str "pure $ Test.Tasty.QuickCheck.testProperty " . name t . sp . fn t }
+              , genSetup = \t -> str "pure $ QC.testProperty " . name t . sp . fn t }
   , Generator { genPrefix = "scprop_"
-              , genImport = str "import qualified Test.Tasty.SmallCheck\n"
+              , genImport = str "import qualified Test.Tasty.SmallCheck as SC\n"
               , genInstance = id
-              , genSetup = \t -> str "pure $ Test.Tasty.SmallCheck.testProperty " . name t . sp . fn t }
+              , genSetup = \t -> str "pure $ SC.testProperty " . name t . sp . fn t }
   , Generator { genPrefix = "case_"
-              , genImport = str "import qualified Test.Tasty.HUnit\n"
+              , genImport = str "import qualified Test.Tasty.HUnit as HU\n"
               , genInstance =
-                  str "class TestCase a where testCase :: String -> a -> IO Test.Tasty.TestTree\n"
-                . str "instance TestCase (IO ())                      where testCase n = pure . Test.Tasty.HUnit.testCase      n\n"
-                . str "instance TestCase (IO String)                  where testCase n = pure . Test.Tasty.HUnit.testCaseInfo  n\n"
-                . str "instance TestCase ((String -> IO ()) -> IO ()) where testCase n = pure . Test.Tasty.HUnit.testCaseSteps n\n"
+                  str "class TestCase a where testCase :: String -> a -> IO T.TestTree\n"
+                . str "instance TestCase (IO ())                      where testCase n = pure . HU.testCase      n\n"
+                . str "instance TestCase (IO String)                  where testCase n = pure . HU.testCaseInfo  n\n"
+                . str "instance TestCase ((String -> IO ()) -> IO ()) where testCase n = pure . HU.testCaseSteps n\n"
               , genSetup = \t -> str "testCase " . name t . sp . fn t }
   , Generator { genPrefix = "spec_"
-              , genImport = str "import qualified Test.Tasty.Hspec\n"
+              , genImport = str "import qualified Test.Tasty.Hspec as HS\n"
               , genInstance = id
-              , genSetup = \t -> str "Test.Tasty.Hspec.testSpec " . name t . sp . fn t }
+              , genSetup = \t -> str "HS.testSpec " . name t . sp . fn t }
   , Generator { genPrefix = "test_"
               , genImport = id
               , genInstance =
-                  str "class TestGroup a where testGroup :: String -> a -> IO Test.Tasty.TestTree\n"
-                . str "instance TestGroup Test.Tasty.TestTree          where testGroup _ a = pure a\n"
-                . str "instance TestGroup [Test.Tasty.TestTree]        where testGroup n a = pure $ Test.Tasty.testGroup n a\n"
-                . str "instance TestGroup (IO Test.Tasty.TestTree)     where testGroup _ a = a\n"
-                . str "instance TestGroup (IO [Test.Tasty.TestTree])   where testGroup n a = Test.Tasty.testGroup n <$> a\n"
+                  str "class TestGroup a where testGroup :: String -> a -> IO T.TestTree\n"
+                . str "instance TestGroup T.TestTree        where testGroup _ a = pure a\n"
+                . str "instance TestGroup [T.TestTree]      where testGroup n a = pure $ T.testGroup n a\n"
+                . str "instance TestGroup (IO T.TestTree)   where testGroup _ a = a\n"
+                . str "instance TestGroup (IO [T.TestTree]) where testGroup n a = T.testGroup n <$> a\n"
               , genSetup = \t -> str "testGroup " . name t . sp . fn t } ]
 
 testFileSuffixes :: [String]
@@ -76,29 +75,28 @@ getGenerators = map head . groupBy  ((==) `on` genPrefix) . sortOn genPrefix . m
 showImports :: [Test] -> ShowS
 showImports = foldEndo . map (\m -> str "import qualified " . str m . nl) . nub . map testModule
 
-showSetup :: Test -> ShowS
-showSetup t = str "  " . var t . str " <- " . genSetup (getGenerator t) t . nl
+showSetup :: Test -> ShowS -> ShowS
+showSetup t var = str "  " . var . str " <- " . genSetup (getGenerator t) t . nl
 
 foldEndo :: (Functor f, Foldable f) => f (a -> a) -> (a -> a)
 foldEndo = appEndo . fold . fmap Endo
 
 showTestDriver :: FilePath -> [Test] -> ShowS
-showTestDriver src ts = let gs = getGenerators ts in
+showTestDriver src ts = let gs = getGenerators ts; vars = map (str . ("t"++) . show) [(0::Int)..] in
     str "{-# LINE 1 " . shows src . str " #-}\n"
   . str "{-# LANGUAGE FlexibleInstances #-}\n"
   . str "module Main where\n"
   . str "import Prelude\n"
-  . str "import qualified Test.Tasty\n"
+  . str "import qualified Test.Tasty as T\n"
   . foldEndo (map genImport gs)
   . showImports ts
   . foldEndo (map genInstance gs)
   . str "main :: IO ()\n"
   . str "main = do\n"
-  . foldEndo (map showSetup ts)
-  . str "  Test.Tasty.defaultMain $ Test.Tasty.testGroup " . shows src
-  . str "\n    [ "
-  . foldEndo (intersperse (str "\n    , ") $ map var ts)
-  . str " ]\n"
+  . foldEndo (zipWith showSetup ts vars)
+  . str "  T.defaultMain $ T.testGroup " . shows src . str " ["
+  . foldEndo (intersperse (',':) $ zipWith (curry snd) ts vars)
+  . str "]\n"
 
 filesBySuffix :: FilePath -> [String] -> IO [FilePath]
 filesBySuffix dir suffixes = do
