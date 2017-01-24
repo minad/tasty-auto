@@ -84,3 +84,46 @@ test_Generate_Trees = do
   inputs <- pure ["First input", "Second input"]
   pure $ map (\s -> testCase s $ pure ()) inputs
 ```
+
+### Generated code
+
+The generated code of the preprocessor looks like this:
+
+``` haskell
+{-# LINE 1 "test/test.hs" #-}
+{-# LANGUAGE FlexibleInstances #-}
+module Main where
+import Prelude
+import qualified Test.Tasty as T
+import qualified Test.Tasty.HUnit as HU
+import qualified Test.Tasty.QuickCheck as QC
+import qualified Test.Tasty.SmallCheck as SC
+import qualified Test.Tasty.Hspec as HS
+import qualified CaseTest
+import qualified SCPropTest
+import qualified TreeTest
+import qualified PropTest
+import qualified TestSpec
+import qualified SubMod.PropTest
+class TestCase a where testCase :: String -> a -> IO T.TestTree
+instance TestCase (IO ())                      where testCase n = pure . HU.testCase      n
+instance TestCase (IO String)                  where testCase n = pure . HU.testCaseInfo  n
+instance TestCase ((String -> IO ()) -> IO ()) where testCase n = pure . HU.testCaseSteps n
+class TestGroup a where testGroup :: String -> a -> IO T.TestTree
+instance TestGroup T.TestTree        where testGroup _ a = pure a
+instance TestGroup [T.TestTree]      where testGroup n a = pure $ T.testGroup n a
+instance TestGroup (IO T.TestTree)   where testGroup _ a = a
+instance TestGroup (IO [T.TestTree]) where testGroup n a = T.testGroup n <$> a
+main :: IO ()
+main = do
+  t0 <- testCase "List comparison with different length" CaseTest.case_List_comparison_with_different_length
+  t1 <- pure $ SC.testProperty "sort reverse" SCPropTest.scprop_sort_reverse
+  t2 <- testGroup "Addition" TreeTest.test_Addition
+  t3 <- testGroup "Multiplication" TreeTest.test_Multiplication
+  t4 <- testGroup "Generate Tree" TreeTest.test_Generate_Tree
+  t5 <- testGroup "Generate Trees" TreeTest.test_Generate_Trees
+  t6 <- pure $ QC.testProperty "Addition is commutative" PropTest.prop_Addition_is_commutative
+  t7 <- HS.testSpec "Prelude" TestSpec.spec_Prelude
+  t8 <- pure $ QC.testProperty "Addition is associative" SubMod.PropTest.prop_Addition_is_associative
+  T.defaultMain $ T.testGroup "test/test.hs" [t0,t1,t2,t3,t4,t5,t6,t7,t8]
+```
