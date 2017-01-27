@@ -85,7 +85,7 @@ test_Generate_Trees = do
   pure $ map (\s -> testCase s $ pure ()) inputs
 ```
 
-### Generated code
+## Generated code
 
 The generated code of the preprocessor looks like this:
 
