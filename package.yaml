@@ -1,5 +1,5 @@
 name: tasty-auto
-version: 0.1.0.1
+version: 0.1.0.2
 description: Auto discovery for Tasty with support for ingredients and test tree generation
 synopsis: Auto discovery for Tasty with support for ingredients and test tree generation
 category: Testing
