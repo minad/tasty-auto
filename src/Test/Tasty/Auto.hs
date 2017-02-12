@@ -1,7 +1,7 @@
 module Test.Tasty.Auto (findTests, showTestDriver) where
 
 import Data.Function (on)
-import Data.List (find, isPrefixOf, isSuffixOf, nub, intersperse, groupBy, sortOn)
+import Data.List (find, isPrefixOf, isSuffixOf, nub, intersperse, groupBy, sortOn, dropWhileEnd)
 import Data.Maybe (fromJust)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
 import Data.Traversable (for)
@@ -79,7 +79,7 @@ foldEndo :: (Functor f, Foldable f) => f (a -> a) -> (a -> a)
 foldEndo = appEndo . fold . fmap Endo
 
 ingredientImport :: String -> String
-ingredientImport = reverse . tail . dropWhile (/= '.') . reverse
+ingredientImport = tail . dropWhileEnd (/= '.')
 
 mainFunction :: [String] -> ShowS
 mainFunction [] = str "  T.defaultMain"
