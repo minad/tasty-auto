@@ -25,6 +25,8 @@ with the following prefixes are automatically discovered:
 
 ## Examples
 
+### QuickCheck
+
 ``` haskell
 -- test/PropTest.hs
 module PropTest where
@@ -32,6 +34,8 @@ module PropTest where
 prop_Addition_is_commutative :: Int -> Int -> Bool
 prop_Addition_is_commutative a b = a + b == b + a
 ```
+
+### HUnit
 
 ``` haskell
 -- test/CaseTest.hs
@@ -42,6 +46,8 @@ import Test.Tasty.HUnit
 case_List_comparison_with_different_length :: IO ()
 case_List_comparison_with_different_length = [1, 2, 3] `compare` [1,2] @?= GT
 ```
+
+### Hspec
 
 ``` haskell
 -- test/TestSpec.hs
@@ -55,6 +61,8 @@ spec_Prelude = do
     it "returns the first element of a list" $ do
       head [23 ..] `shouldBe` (23 :: Int)
 ```
+
+### Test trees
 
 ``` haskell
 -- test/TreeTest.hs
@@ -83,6 +91,15 @@ test_Generate_Trees :: IO [TestTree]
 test_Generate_Trees = do
   inputs <- pure ["First input", "Second input"]
   pure $ map (\s -> testCase s $ pure ()) inputs
+```
+
+## Support for additional ingredients
+
+You can add tasty ingredients with the `-optF` option:
+
+``` haskell
+-- test/test.hs
+{-# OPTIONS_GHC -F -pgmF tasty-auto -optF Test.Tasty.Runners.Html.htmlRunner -optF Test.Tasty.Runners.AntXML.antXMLRunner #-}
 ```
 
 ## Generated code

@@ -69,8 +69,8 @@ getGenerator t = fromJust $ find ((`isPrefixOf` testFunction t) . genPrefix) gen
 getGenerators :: [Test] -> [Generator]
 getGenerators = map head . groupBy  ((==) `on` genPrefix) . sortOn genPrefix . map getGenerator
 
-showImports :: [Test] -> ShowS
-showImports = foldEndo . map (\m -> str "import qualified " . str m . nl) . nub . map testModule
+showImports :: [String] -> ShowS
+showImports = foldEndo . map (\m -> str "import qualified " . str m . nl) . nub
 
 showSetup :: Test -> ShowS -> ShowS
 showSetup t var = str "  " . var . str " <- " . genSetup (getGenerator t) t . nl
@@ -78,20 +78,28 @@ showSetup t var = str "  " . var . str " <- " . genSetup (getGenerator t) t . nl
 foldEndo :: (Functor f, Foldable f) => f (a -> a) -> (a -> a)
 foldEndo = appEndo . fold . fmap Endo
 
-showTestDriver :: FilePath -> [Test] -> ShowS
-showTestDriver src ts = let gs = getGenerators ts; vars = map (str . ("t"++) . show) [(0::Int)..] in
+ingredientImport :: String -> String
+ingredientImport = reverse . tail . dropWhile (/= '.') . reverse
+
+mainFunction :: [String] -> ShowS
+mainFunction [] = str "  T.defaultMain"
+mainFunction ingredients = str "  T.defaultMainWithIngredients ("
+  . foldEndo (map (\i -> str i . (':':)) ingredients) . str "T.defaultIngredients)"
+
+showTestDriver :: [String] -> FilePath -> [Test] -> ShowS
+showTestDriver ingredients src ts = let gs = getGenerators ts; vars = map (str . ('t':) . show) [(0::Int)..] in
     str "{-# LINE 1 " . shows src . str " #-}\n\
         \{-# LANGUAGE FlexibleInstances #-}\n\
         \module Main where\n\
         \import Prelude\n\
         \import qualified Test.Tasty as T\n"
   . foldEndo (map genImport gs)
-  . showImports ts
+  . showImports (map ingredientImport ingredients ++ map testModule ts)
   . foldEndo (map genClass gs)
   . str "main :: IO ()\n\
         \main = do\n"
   . foldEndo (zipWith showSetup ts vars)
-  . str "  T.defaultMain $ T.testGroup " . shows src . str " ["
+  . mainFunction ingredients . str " $ T.testGroup " . shows src . str " ["
   . foldEndo (intersperse (',':) $ zipWith (curry snd) ts vars)
   . str "]\n"
 

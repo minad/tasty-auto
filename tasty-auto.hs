@@ -7,9 +7,9 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    src : _ : dst : _ -> do
+    src : _ : dst : ingredients -> do
       tests <- findTests src
-      writeFile dst $ showTestDriver src tests ""
+      writeFile dst $ showTestDriver ingredients src tests ""
     _ -> do
       hPutStrLn stderr "tasty-auto: Expected source and destination arguments"
       exitFailure

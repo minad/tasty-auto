@@ -4,8 +4,8 @@
 
 name:           tasty-auto
 version:        0.1.0.1
-synopsis:       Simple auto discovery for Tasty
-description:    Simple auto discovery for Tasty
+synopsis:       Auto discovery for Tasty with support for ingredients and test tree generation
+description:    Auto discovery for Tasty with support for ingredients and test tree generation
 category:       Testing
 stability:      experimental
 homepage:       https://github.com/minad/tasty-auto#readme
