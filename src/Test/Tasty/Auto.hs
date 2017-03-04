@@ -79,29 +79,33 @@ foldEndo :: (Functor f, Foldable f) => f (a -> a) -> (a -> a)
 foldEndo = appEndo . fold . fmap Endo
 
 ingredientImport :: String -> String
-ingredientImport = tail . dropWhileEnd (/= '.')
+ingredientImport = init . dropWhileEnd (/= '.')
 
-mainFunction :: [String] -> ShowS
-mainFunction [] = str "  T.defaultMain"
-mainFunction ingredients = str "  T.defaultMainWithIngredients ("
-  . foldEndo (map (\i -> str i . (':':)) ingredients) . str "T.defaultIngredients)"
+ingredients :: [String] -> ShowS
+ingredients is = foldEndo (map (\i -> str i . (':':)) is) . str "T.defaultIngredients"
 
-showTestDriver :: [String] -> FilePath -> [Test] -> ShowS
-showTestDriver ingredients src ts = let gs = getGenerators ts; vars = map (str . ('t':) . show) [(0::Int)..] in
+showTestDriver :: String -> [String] -> FilePath -> [Test] -> ShowS
+showTestDriver modname is src ts =
+  let gs = getGenerators ts; vars = map (str . ('t':) . show) [(0::Int)..] in
     str "{-# LINE 1 " . shows src . str " #-}\n\
         \{-# LANGUAGE FlexibleInstances #-}\n\
-        \module Main where\n\
+        \module " . str modname . str " (main, ingredients, tests) where\n\
         \import Prelude\n\
-        \import qualified Test.Tasty as T\n"
+        \import qualified Test.Tasty as T\n\
+        \import qualified Test.Tasty.Ingredients as T\n"
   . foldEndo (map genImport gs)
-  . showImports (map ingredientImport ingredients ++ map testModule ts)
+  . showImports (map ingredientImport is ++ map testModule ts)
   . foldEndo (map genClass gs)
-  . str "main :: IO ()\n\
-        \main = do\n"
+  . str "tests :: IO T.TestTree\n\
+        \tests = do\n"
   . foldEndo (zipWith showSetup ts vars)
-  . mainFunction ingredients . str " $ T.testGroup " . shows src . str " ["
+  . str "  pure $ T.testGroup " . shows src . str " ["
   . foldEndo (intersperse (',':) $ zipWith (curry snd) ts vars)
   . str "]\n"
+  . str "ingredients :: [T.Ingredient]\n\
+        \ingredients = " . ingredients is . str "\n\
+        \main :: IO ()\n\
+        \main = tests >>= T.defaultMainWithIngredients ingredients\n"
 
 filesBySuffix :: FilePath -> [String] -> IO [FilePath]
 filesBySuffix dir suffixes = do

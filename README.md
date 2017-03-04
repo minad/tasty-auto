@@ -93,13 +93,20 @@ test_Generate_Trees = do
   pure $ map (\s -> testCase s $ pure ()) inputs
 ```
 
-## Support for additional ingredients
+## Configuration options
 
 You can add tasty ingredients with the `-optF` option:
 
 ``` haskell
 -- test/test.hs
-{-# OPTIONS_GHC -F -pgmF tasty-auto -optF Test.Tasty.Runners.Html.htmlRunner -optF Test.Tasty.Runners.AntXML.antXMLRunner #-}
+{-# OPTIONS_GHC -F -pgmF tasty-auto -optF --ingredient=Test.Tasty.Runners.Html.htmlRunner -optF --ingredient=Test.Tasty.Runners.AntXML.antXMLRunner #-}
+```
+
+It is possible to configure the name of the generated module, if you want to import the module somewhere.
+
+``` haskell
+-- test/AutoTests.hs
+{-# OPTIONS_GHC -F -pgmF tasty-auto -optF --module=AutoTests #-}
 ```
 
 ## Generated code
@@ -109,9 +116,10 @@ The generated code of the preprocessor looks like this:
 ``` haskell
 {-# LINE 1 "test/test.hs" #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Main where
+module Main (main, ingredients, tests) where
 import Prelude
 import qualified Test.Tasty as T
+import qualified Test.Tasty.Ingredients as T
 import qualified Test.Tasty.HUnit as HU
 import qualified Test.Tasty.QuickCheck as QC
 import qualified Test.Tasty.SmallCheck as SC
@@ -131,8 +139,8 @@ instance TestGroup T.TestTree        where testGroup _ a = pure a
 instance TestGroup [T.TestTree]      where testGroup n a = pure $ T.testGroup n a
 instance TestGroup (IO T.TestTree)   where testGroup _ a = a
 instance TestGroup (IO [T.TestTree]) where testGroup n a = T.testGroup n <$> a
-main :: IO ()
-main = do
+tests :: IO T.TestTree
+tests = do
   t0 <- testCase "List comparison with different length" CaseTest.case_List_comparison_with_different_length
   t1 <- pure $ SC.testProperty "sort reverse" SCPropTest.scprop_sort_reverse
   t2 <- testGroup "Addition" TreeTest.test_Addition
@@ -142,5 +150,9 @@ main = do
   t6 <- pure $ QC.testProperty "Addition is commutative" PropTest.prop_Addition_is_commutative
   t7 <- HS.testSpec "Prelude" TestSpec.spec_Prelude
   t8 <- pure $ QC.testProperty "Addition is associative" SubMod.PropTest.prop_Addition_is_associative
-  T.defaultMain $ T.testGroup "test/test.hs" [t0,t1,t2,t3,t4,t5,t6,t7,t8]
+  pure $ T.testGroup "test/test.hs" [t0,t1,t2,t3,t4,t5,t6,t7,t8]
+ingredients :: [T.Ingredient]
+ingredients = T.defaultIngredients
+main :: IO ()
+main = tests >>= T.defaultMainWithIngredients ingredients
 ```
